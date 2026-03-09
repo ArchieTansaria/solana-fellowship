@@ -1,0 +1,86 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int        @id @default(autoincrement())
+  email     String     @unique
+  password  String
+  name      String
+  launches  Launch[]
+  purchases Purchase[]
+}
+model Launch {
+  id            Int             @id @default(autoincrement())
+  name          String
+  symbol        String
+  totalSupply   Int
+  pricePerToken Float
+  startsAt      DateTime
+  endsAt        DateTime
+  maxPerWallet  Int
+  description   String
+  creatorId     Int
+  creator       User            @relation(fields: [creatorId], references: [id])
+  tiers         Tier[]
+  whitelist     Whitelist[]
+  referrals     ReferralCode[]
+  purchases     Purchase[]
+  vesting       VestingConfig?
+}
+model Tier {
+  id            Int    @id @default(autoincrement())
+  minAmount     Int
+  maxAmount     Int
+  pricePerToken Float
+  launchId      Int
+  launch        Launch @relation(fields: [launchId], references: [id])
+}
+model Whitelist {
+  id       Int    @id @default(autoincrement())
+  address  String
+  launchId Int
+  launch   Launch @relation(fields: [launchId], references: [id])
+  @@unique([launchId, address])
+}
+model ReferralCode {
+  id              Int    @id @default(autoincrement())
+  code            String
+  discountPercent Float
+  maxUses         Int
+  usedCount       Int    @default(0)
+  launchId        Int
+  launch          Launch @relation(fields: [launchId], references: [id])
+  @@unique([launchId, code])
+}
+model Purchase {
+  id            Int      @id @default(autoincrement())
+  walletAddress String
+  amount        Int
+  totalCost     Float
+  txSignature   String   @unique
+  createdAt     DateTime @default(now())
+  userId        Int
+  user          User     @relation(fields: [userId], references: [id])
+  launchId      Int
+  launch        Launch   @relation(fields: [launchId], references: [id])
+}
+model VestingConfig {
+  id          Int    @id @default(autoincrement())
+  cliffDays   Int
+  vestingDays Int
+  tgePercent  Float
+  launchId    Int    @unique
+  launch      Launch @relation(fields: [launchId], references: [id])
+}
